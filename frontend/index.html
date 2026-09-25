@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bengal Scheme-to-Video AI Studio | Government of West Bengal</title>
+  <meta name="description" content="Official AI-driven video storyboard and prompt generation studio for Government of West Bengal schemes.">
+  
+  <!-- Modern Google Fonts: Inter/Outfit + Hind Siliguri for Bengali -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="header">
+    <div class="header-container">
+      <div class="logo-group">
+        <div class="emblem-icon">🏛️</div>
+        <div class="brand-text">
+          <h1>Bengal Scheme-to-Video AI Studio</h1>
+          <p>Government of West Bengal &bull; Official Media Prompt Pipeline</p>
+        </div>
+      </div>
+      <div class="badge-official">
+        <span>🛡️</span> Official Portal &bull; Verified AI Agents
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Wrapper -->
+  <main class="app-container">
+
+    <!-- Error/Alert Banner -->
+    <div id="alertBox" class="alert-box hidden" role="alert">
+      <span class="alert-icon">⚠️</span>
+      <div id="alertMessage" class="alert-text">Error message goes here</div>
+    </div>
+
+    <!-- Input Configuration Grid -->
+    <div class="setup-grid">
+
+      <!-- Card 1: API Configuration -->
+      <section class="card" id="apiConfigCard">
+        <h2 class="card-title">
+          <span class="card-icon">🔑</span> API Authentication & Credentials
+        </h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          Paste your Gemini or OpenAI API key. Generation is strictly disabled without a valid key.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label" for="providerSelect">AI Provider <span class="req">*</span></label>
+          <select id="providerSelect" class="form-select">
+            <option value="gemini" selected>Google Gemini</option>
+            <option value="openai">OpenAI</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="modelSelect">Model Selection</label>
+          <select id="modelSelect" class="form-select">
+            <option value="gemini-3.5-flash" selected>gemini-3.5-flash (Verified Active & Ultra-Fast)</option>
+            <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
+            <option value="gemini-flash-latest">gemini-flash-latest</option>
+            <option value="gemini-3.6-flash">gemini-3.6-flash</option>
+            <option value="gemini-3.7-flash">gemini-3.7-flash</option>
+            <option value="gemini-3.8-flash">gemini-3.8-flash</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="apiKeyInput">API Key <span class="req">*</span></label>
+          <div class="key-input-wrapper">
+            <input type="password" id="apiKeyInput" class="form-control" placeholder="Paste your API key here (e.g. AIzaSy... or sk-...)">
+            <button type="button" id="toggleKeyVisibility" class="btn-toggle-key">Show</button>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+            <span id="keyStatusText" style="font-size: 0.78rem; color: var(--text-dim);">No key tested yet</span>
+            <button type="button" id="btnTestKey" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+              Verify Key
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.5rem;">
+          <label class="form-label">Generation Guardrails</label>
+          <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px;">
+            <div>&bull; <strong>Strict No Lip-Sync:</strong> Third-person narration with B-roll</div>
+            <div>&bull; <strong>WB Grounding:</strong> Only West Bengal colleges, libraries, and uploaded photos</div>
+            <div>&bull; <strong>Narration Timing:</strong> Starts &ge; 1s, ends 1-2s before scene transition</div>
+            <div>&bull; <strong>Everyday Bengali:</strong> Spoken conversational Bengali</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Card 2: Scheme Document & Grounding Upload -->
+      <section class="card" id="schemeUploadCard">
+        <h2 class="card-title">
+          <span class="card-icon">📄</span> Scheme Document & Grounding Assets
+        </h2>
+
+        <!-- Document Input Options -->
+        <div class="tabs-nav">
+          <button type="button" id="tabDocFile" class="tab-btn active">Upload Document File</button>
+          <button type="button" id="tabDocText" class="tab-btn">Paste Document Text</button>
+        </div>
+
+        <!-- File Upload Area -->
+        <div id="fileUploadContainer">
+          <div id="docDropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload Scheme Document">
+            <div class="dropzone-icon">📥</div>
+            <div class="dropzone-title">Upload Scheme Guidelines</div>
+            <div class="dropzone-desc">PDF, Word (.docx), or Text (.txt)</div>
+            <input type="file" id="schemeFileInput" accept=".pdf,.docx,.doc,.txt,.md" style="display: none;">
+            <div id="docFileInfo" class="dropzone-file-info" style="display: none;">
+              <span>📄</span> <span id="docFileName">file.pdf</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Text Paste Area -->
+        <div id="textPasteContainer" style="display: none;">
+          <textarea id="schemeTextInput" class="form-control" rows="5" placeholder="Paste the official scheme notice or guidelines text here..."></textarea>
+        </div>
+
+        <!-- Grounding Photos (Colleges, Libraries) -->
+        <div class="form-group" style="margin-top: 1.25rem;">
+          <label class="form-label">
+            Local West Bengal Grounding Photos
+            <span style="font-weight: 400; color: var(--text-dim); text-transform: none;">(Optional, e.g. College campus, Library, Bikash Bhavan)</span>
+          </label>
+          <div id="photoDropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload Grounding Photos">
+            <div class="dropzone-icon" style="font-size: 1.5rem;">🏛️ 📚</div>
+            <div class="dropzone-title">Drop Grounding Photos</div>
+            <div class="dropzone-desc">Upload photos of WB colleges or libraries to ground video scenes</div>
+            <input type="file" id="groundingPhotosInput" accept="image/jpeg,image/png,image/webp" multiple style="display: none;">
+          </div>
+          <div id="photoPreviewGrid" class="photo-preview-grid"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="notesInput">Additional Directorial Notes (Optional)</label>
+          <input type="text" id="notesInput" class="form-control" placeholder="E.g. Focus on rural Bengal students or specific district colleges">
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Generate Action Button -->
+    <div style="text-align: center; margin-bottom: 2.5rem;">
+      <button type="button" id="btnGenerate" class="btn btn-primary btn-large">
+        <span>🎬</span> Generate 5-6 Scene Prompts & Run AI Critic
+      </button>
+    </div>
+
+    <!-- Loading / Processing State -->
+    <div id="loadingBox" class="loading-box">
+      <div class="spinner"></div>
+      <h3 id="loadingTitle" style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem;">Analyzing Scheme Document...</h3>
+      <p id="loadingSub" style="color: var(--text-muted); font-size: 0.9rem;">
+        Extracting scheme guidelines, identifying West Bengal grounding elements, and preparing scene prompts.
+      </p>
+
+      <div class="loading-step-list">
+        <div id="stepDoc" class="loading-step-item active">
+          <span>●</span> Document Extraction
+        </div>
+        <div id="stepPrompt" class="loading-step-item">
+          <span>●</span> Scene Prompt Generation
+        </div>
+        <div id="stepCritic" class="loading-step-item">
+          <span>●</span> AI Critic Agent Audit
+        </div>
+      </div>
+    </div>
+
+    <!-- Output & Storyboard Section -->
+    <section id="resultsSection" style="display: none;">
+      
+      <!-- Results Header -->
+      <div class="results-header">
+        <div class="results-title">
+          <h2 id="displaySchemeTitle">Scheme Title</h2>
+          <div class="results-meta">
+            <span id="displayDuration" class="meta-chip">⏱️ 50.0s Total</span>
+            <span id="displaySceneCount" class="meta-chip">🎬 6 Scenes</span>
+            <span class="meta-chip" style="color: #34d399; border-color: rgba(16, 185, 129, 0.4);">
+              ✓ No Lip-Sync Enforced
+            </span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="button" id="btnExportJson" class="btn btn-secondary" style="font-size: 0.85rem;">
+            📥 Export Spec JSON
+          </button>
+          <button type="button" id="btnCopyPrompts" class="btn btn-secondary" style="font-size: 0.85rem;">
+            📋 Copy Video Prompts
+          </button>
+        </div>
+      </div>
+
+      <!-- AI Critic Audit Card -->
+      <div id="criticAuditCard" class="critic-card">
+        <div class="critic-top-row">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div class="critic-badge">
+              <span>🤖</span> AI Critic & Refinement Agent
+            </div>
+            <div id="criticScoreBadge" class="critic-badge score">
+              Score: 98/100 (Passed)
+            </div>
+          </div>
+          <button type="button" id="btnRerunCritic" class="btn btn-outline-emerald" style="padding: 0.35rem 0.85rem; font-size: 0.8rem;">
+            🔄 Re-Run Critic Audit
+          </button>
+        </div>
+        <p id="criticNotesText" class="critic-notes">
+          All 6 scenes verified: Narration starts strictly after 1s with 1.5s exit buffer; WB colleges grounded; no lip sync detected.
+        </p>
+        <div id="criticIssuesContainer" class="critic-issues-list"></div>
+      </div>
+
+      <!-- Global Directorial Guidelines -->
+      <div class="card" style="margin-bottom: 2rem; background: rgba(15, 23, 42, 0.5);">
+        <div class="section-label">Global Directorial & Aesthetic Guidelines</div>
+        <p id="displayGlobalGuidelines" style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.6;"></p>
+        <div id="displayGroundingRefs" class="pill-list"></div>
+      </div>
+
+      <!-- 5-6 Scene Cards Grid -->
+      <div id="scenesContainer" class="scenes-grid">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+
+      <!-- Sticky Floating Action Footer -->
+      <div class="floating-actions">
+        <div>
+          <span style="font-size: 0.85rem; color: var(--text-muted);">
+            All fields above are directly editable. You can adjust prompts, voiceover, or timings in place.
+          </span>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="button" id="btnSaveEdits" class="btn btn-primary" style="font-size: 0.85rem;">
+            💾 Save Scene Edits
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
