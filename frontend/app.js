@@ -16,6 +16,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnTestKey = document.getElementById('btnTestKey');
   const keyStatusText = document.getElementById('keyStatusText');
 
+  // AI Critic always runs on Groq, so it has its own credentials.
+  const criticApiKeyInput = document.getElementById('criticApiKeyInput');
+  const criticModelSelect = document.getElementById('criticModelSelect');
+  const criticModelNote = document.getElementById('criticModelNote');
+  const toggleCriticKeyBtn = document.getElementById('toggleCriticKeyVisibility');
+  const btnTestCriticKey = document.getElementById('btnTestCriticKey');
+  const criticKeyStatusText = document.getElementById('criticKeyStatusText');
+
   // Populate models based on selected provider
   providerSelect.addEventListener('change', () => {
     modelSelect.innerHTML = '';
@@ -117,6 +125,100 @@ document.addEventListener('DOMContentLoaded', () => {
       toggleKeyBtn.textContent = 'Show';
     }
   });
+
+  // Toggle Critic (Groq) API Key Visibility
+  toggleCriticKeyBtn.addEventListener('click', () => {
+    if (criticApiKeyInput.type === 'password') {
+      criticApiKeyInput.type = 'text';
+      toggleCriticKeyBtn.textContent = 'Hide';
+    } else {
+      criticApiKeyInput.type = 'password';
+      toggleCriticKeyBtn.textContent = 'Show';
+    }
+  });
+
+  // Verify Groq Key used by the AI Critic Agent
+  btnTestCriticKey.addEventListener('click', async () => {
+    hideAlert();
+    const key = criticApiKeyInput.value.trim();
+    if (!key) {
+      showAlert("Enter a Groq API key to test it, or leave it blank to rely on the GROQ_API_KEY environment variable.");
+      criticKeyStatusText.textContent = "Key missing";
+      criticKeyStatusText.style.color = "#f43f5e";
+      return;
+    }
+
+    criticKeyStatusText.textContent = "Verifying...";
+    criticKeyStatusText.style.color = "#38bdf8";
+
+    const formData = new FormData();
+    formData.append("provider", "groq");
+    formData.append("api_key", key);
+    formData.append("model_name", criticModelSelect.value);
+
+    try {
+      const resp = await fetch("/api/validate-key", { method: "POST", body: formData });
+      const data = await resp.json();
+      if (resp.ok) {
+        criticKeyStatusText.textContent = "✓ Valid Groq Key";
+        criticKeyStatusText.style.color = "#34d399";
+        showAlert(data.message || "Groq API Key successfully verified for the AI Critic!", true);
+        populateCriticModels(data.available_models || [], data.default_model, data.default_model_available);
+      } else {
+        criticKeyStatusText.textContent = "✗ Invalid Key";
+        criticKeyStatusText.style.color = "#f43f5e";
+        showAlert(data.detail || "Groq API Key verification failed.");
+      }
+    } catch (e) {
+      criticKeyStatusText.textContent = "✗ Verification Error";
+      criticKeyStatusText.style.color = "#f43f5e";
+      showAlert("Network error during Groq key verification: " + e.message);
+    }
+  });
+
+  // Rebuild the critic model dropdown from the models the account can actually
+  // reach, since Groq retires model IDs on a rolling schedule.
+  function populateCriticModels(availableModels, defaultModel, defaultAvailable) {
+    if (!availableModels || availableModels.length === 0) return;
+
+    const preferred = criticModelSelect.value;
+    criticModelSelect.innerHTML = '';
+
+    const recommended = [
+      { val: 'openai/gpt-oss-120b', label: 'openai/gpt-oss-120b (Recommended)' },
+      { val: 'qwen/qwen3.8-27b', label: 'qwen/qwen3.8-27b' },
+      { val: 'openai/gpt-oss-20b', label: 'openai/gpt-oss-20b (Faster)' }
+    ].filter(m => availableModels.includes(m.val));
+
+    const others = availableModels.filter(m => !recommended.some(r => r.val === m));
+
+    recommended.concat(others).forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.val;
+      opt.textContent = m.label || m.val;
+      criticModelSelect.appendChild(opt);
+    });
+
+    // Keep the user's choice if it is still available, else fall back sensibly.
+    if (availableModels.includes(preferred)) {
+      criticModelSelect.value = preferred;
+    } else if (availableModels.includes(defaultModel)) {
+      criticModelSelect.value = defaultModel;
+    }
+
+    const missingRecommended = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b']
+      .filter(m => !availableModels.includes(m));
+
+    if (defaultAvailable === false || missingRecommended.length > 0) {
+      criticModelNote.textContent =
+        "Note: this Groq account cannot reach " + missingRecommended.join(", ") +
+        ". The critic will auto-fallback to an available model.";
+      criticModelNote.style.color = "#fbbf24";
+    } else {
+      criticModelNote.textContent = availableModels.length + " chat model(s) available on this account.";
+      criticModelNote.style.color = "var(--text-dim)";
+    }
+  }
 
   // Verify Key Button
   btnTestKey.addEventListener('click', async () => {
@@ -257,7 +359,12 @@ document.addEventListener('DOMContentLoaded', () => {
     formData.append("provider", providerSelect.value);
     formData.append("api_key", apiKey);
     formData.append("model_name", modelSelect.value);
+    formData.append("critic_model_name", criticModelSelect.value);
     formData.append("auto_run_critic", "true");
+
+    if (criticApiKeyInput.value.trim()) {
+      formData.append("critic_api_key", criticApiKeyInput.value.trim());
+    }
 
     if (hasFile) {
       formData.append("scheme_file", schemeFileInput.files[0]);
@@ -457,9 +564,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Re-run Critic Agent on user edits
   btnRerunCritic.addEventListener('click', async () => {
-    const key = apiKeyInput.value.trim();
-    if (!key) {
-      showAlert("API Key required to re-run AI Critic.");
+    const criticKey = criticApiKeyInput.value.trim();
+    if (!criticKey) {
+      showAlert("Groq API key required to re-run AI Critic. Paste one above or set the GROQ_API_KEY environment variable.");
       return;
     }
     if (!currentPlan) return;
@@ -482,8 +589,8 @@ document.addEventListener('DOMContentLoaded', () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          provider: providerSelect.value,
-          api_key: key,
+          critic_api_key: criticKey,
+          critic_model_name: criticModelSelect.value,
           current_plan: currentPlan,
           scheme_document_text: activeSchemeText || currentPlan.scheme_title
         })

@@ -9,6 +9,8 @@ from pydantic import BaseModel, Field
 class ProviderType(str, Enum):
     GEMINI = "gemini"
     OPENAI = "openai"
+    GROQ = "groq"
+    
 
 
 class ScenePrompt(BaseModel):
@@ -60,8 +62,18 @@ class GenerateRequest(BaseModel):
 
 
 class RefineRequest(BaseModel):
-    provider: ProviderType
-    api_key: str = Field(..., min_length=10)
+    # The Critic Agent always runs on Groq; these are retained for the
+    # client contract but are not used to select the audit model.
+    provider: Optional[ProviderType] = None
+    api_key: Optional[str] = None
+    critic_api_key: Optional[str] = Field(
+        default=None,
+        description="Optional Groq key (starts with 'gsk_'). Falls back to the GROQ_API_KEY env var."
+    )
+    critic_model_name: Optional[str] = Field(
+        default=None,
+        description="Optional Groq model override. Falls back to GROQ_MODEL then openai/gpt-oss-120b."
+    )
     current_plan: VideoProjectPlan
     scheme_document_text: str
     grounding_notes: Optional[str] = None

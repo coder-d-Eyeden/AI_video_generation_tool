@@ -25,12 +25,14 @@ A modular AI-driven prompt engineering and agentic quality inspection platform f
    - Everyday conversational Bengali phrasing tailored for students and parents.
 6. **Micro-Prompting On-Screen Text**:
    - Prominent Bengali & numerical on-screen cues for quick retention.
-7. **AI Critic & Refinement Agent**:
+7. **AI Critic & Refinement Agent (Groq)**:
    - Autonomously audits every scene against the 6 core criteria, flags violations, fixes timings, refines Bengali phrasing, and outputs a compliance score (0–100) and resolution log.
+   - The Critic always runs on **Groq** (`openai/gpt-oss-120b` by default), independent of the provider that generated the scenes, so the audit never inherits the generator's blind spots.
+   - The model list is **discovered at runtime** from `GET /openai/v1/models`, so a Groq retirement degrades to a fallback model instead of a hard failure.
 8. **Bengali TTS Audio Preview**:
    - Direct voiceover preview player with timing buffer calculation.
 9. **Zero Template / Placeholder Fallback**:
-   - System requires a valid API key (Gemini / OpenAI) and genuine scheme document. Generation is blocked with explicit 400 alerts if inputs are missing.
+   - System requires a valid API key (Gemini / OpenAI for scenes, Groq for the Critic) and genuine scheme document. Generation is blocked with explicit 400 alerts if inputs are missing.
 
 ---
 
@@ -43,9 +45,9 @@ h:/py_vid/
 │   ├── __init__.py
 │   ├── models.py             # Pydantic schemas (ScenePrompt, VideoProjectPlan, CriticAudit)
 │   ├── document_parser.py    # Extracts PDF, Word (.docx), TXT & processes grounding photos
-│   ├── llm_client.py         # Multi-provider wrapper (Gemini / OpenAI) with strict error handling
+│   ├── llm_client.py         # Multi-provider wrapper (Gemini / OpenAI / Groq) with strict error handling
 │   ├── scene_generator.py    # Directs 5-6 scenes with WB grounding, timing, & Bengali voiceover
-│   ├── critic_agent.py       # Autonomous AI Critic Agent that audits and refines prompts
+│   ├── critic_agent.py       # Autonomous AI Critic Agent (Groq) that audits and refines prompts
 │   ├── tts_service.py        # Bengali Text-to-Speech audio preview generator
 │   ├── media_adapter.py      # Abstract interface for future Text-to-Image and Image-to-Video models
 │   └── main.py               # FastAPI application with REST endpoints
@@ -72,13 +74,31 @@ h:/py_vid/
 pip install -r requirements.txt
 ```
 
-### 2. Start the Server
+### 2. Configure the Critic Key (Groq)
+The AI Critic Agent runs on Groq and needs its own key. Either export it:
+```bash
+set GROQ_API_KEY=gsk_...
+```
+or paste it into the **AI Critic Credentials (Groq)** box in the UI, which overrides the environment variable. Pressing **Verify Key** there also loads the chat models your account can currently reach, so you can pick from a live list.
+
+Optional environment variables:
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `GROQ_API_KEY` | Groq credential used by the Critic | _(required unless pasted in the UI)_ |
+| `GROQ_MODEL` | Overrides the Critic's model | `openai/gpt-oss-120b` |
+
+The scene generator uses the provider/key selected in the UI (Gemini or OpenAI) and never the Groq key.
+
+> **Note on Llama:** Groq retired every Llama model ID — `llama-3.3-70b-versatile` and `llama-3.1-8b-instant` were shut down on 2026-08-16, and the Llama 4 Scout/Maverick IDs earlier. Groq's recommended successor to `llama-3.3-70b-versatile` is `openai/gpt-oss-120b`, which is the critic's default. Requesting a retired ID returns HTTP 404, so the client auto-discovers the live model list and falls back rather than failing.
+
+### 3. Start the Server
 ```bash
 python run.py
 ```
 Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
-### 3. Run Automated Tests
+### 4. Run Automated Tests
 ```bash
 python -m pytest tests/
 ```

@@ -22,7 +22,7 @@ from backend.document_parser import (
     process_grounding_images,
     DocumentParsingError
 )
-from backend.llm_client import LLMClient, LLMAuthError, LLMExecutionError
+from backend.llm_client import LLMClient, LLMAuthError, LLMExecutionError, DEFAULT_GROQ_MODEL
 from backend.scene_generator import SceneGenerator
 from backend.critic_agent import CriticAgent
 from backend.tts_service import TTSService
@@ -53,13 +53,14 @@ async def validate_api_key(
     Verifies the API key using a lightweight metadata call — NOT a generation request.
     Gemini: calls models.list() which is near-instant.
     OpenAI: calls models.list() which is near-instant.
+    Groq: calls models.list() on the OpenAI-compatible endpoint.
     This avoids triggering the full retry/backoff chain just to check a key.
     """
     cleaned_key = (api_key or "").strip()
     if not cleaned_key:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="API Key cannot be blank. Please paste your Gemini or OpenAI API key."
+            detail="API Key cannot be blank. Please paste your Gemini, OpenAI, or Groq API key."
         )
 
     try:
@@ -67,7 +68,7 @@ async def validate_api_key(
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid provider '{provider}'. Must be 'gemini' or 'openai'."
+            detail=f"Invalid provider '{provider}'. Must be 'gemini', 'openai', or 'groq'."
         )
 
     try:
@@ -95,6 +96,21 @@ async def validate_api_key(
                 "message": f"API Key verified! {len(model_list)} OpenAI models available."
             }
 
+        elif provider_type == ProviderType.GROQ:
+            from backend.llm_client import discover_groq_models
+            model_list = discover_groq_models(cleaned_key, use_cache=False)
+            return {
+                "success": True,
+                "provider": provider_type.value,
+                "message": (
+                    f"API Key verified! {len(model_list)} Groq chat models available "
+                    f"for the AI Critic."
+                ),
+                "available_models": model_list,
+                "default_model": DEFAULT_GROQ_MODEL,
+                "default_model_available": DEFAULT_GROQ_MODEL in model_list
+            }
+
     except LLMAuthError as ae:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(ae))
     except Exception as e:
@@ -109,6 +125,8 @@ async def generate_plan_endpoint(
     provider: str = Form(default=""),
     api_key: str = Form(default=""),
     model_name: Optional[str] = Form(default=None),
+    critic_api_key: Optional[str] = Form(default=None),
+    critic_model_name: Optional[str] = Form(default=None),
     scheme_text: Optional[str] = Form(default=None),
     additional_notes: Optional[str] = Form(default=None),
     auto_run_critic: bool = Form(default=True),
@@ -117,7 +135,7 @@ async def generate_plan_endpoint(
 ):
     """
     Main endpoint: extracts scheme details, generates 5-6 scene prompts,
-    and runs the AI Critic Agent to audit and refine.
+    and runs the AI Critic Agent (Groq) to audit and refine.
     Strictly fails if API key or scheme document is missing.
     """
     # 1. Validate API Key
@@ -203,50 +221,51 @@ async def generate_plan_endpoint(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Generation failed: {str(e)}")
 
-    # 6. Run AI Critic & Refinement Agent
+    # 6. Run AI Critic & Refinement Agent (always Groq, independent of `provider`)
     if auto_run_critic:
         try:
             import asyncio
             # Brief pause so the Critic call does not immediately hit the same
             # overloaded model endpoint as the generation call above.
             await asyncio.sleep(3)
-            critic = CriticAgent(llm_client=llm_client)
+            critic = CriticAgent(api_key=critic_api_key, model_name=critic_model_name)
             grounding_notes = ""
             if grounding_images:
                 grounding_notes = f"Grounding images provided: {[img['filename'] for img in grounding_images]}. Ground visual prompts in these uploaded buildings."
             plan = critic.audit_and_refine(
                 current_plan=plan,
                 scheme_document_text=document_content,
-                grounding_notes=grounding_notes,
-                model_name=model_name
+                grounding_notes=grounding_notes
             )
         except Exception as e:
-            # Critic failed (overload or transient). Return the already-generated
-            # plan intact -- user can re-run Critic manually from the UI.
-            plan.global_guidelines += f" [Critic skipped: {str(e)[:120]}]"
+            # Critic failed (missing Groq key, retired model, or transient overload).
+            # Return the already-generated plan intact -- user can re-run Critic
+            # manually from the UI. The message is kept long enough to stay
+            # actionable, since Groq retirement errors are the common case.
+            plan.global_guidelines += f" [AI Critic skipped: {str(e)[:400]}]"
 
     return plan
 
 
 @app.post("/api/run-critic")
 async def run_critic_endpoint(request: RefineRequest):
-    """Allows manual trigger of AI Critic Agent on an existing or user-edited plan."""
-    cleaned_key = (request.api_key or "").strip()
-    if not cleaned_key:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="API Key required.")
-
+    """Allows manual trigger of the AI Critic Agent (Groq) on an existing or user-edited plan."""
     if not request.scheme_document_text:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Original scheme document text is required for auditing.")
 
     try:
-        llm_client = LLMClient(provider=request.provider, api_key=cleaned_key)
-        critic = CriticAgent(llm_client=llm_client)
+        critic = CriticAgent(
+            api_key=request.critic_api_key,
+            model_name=request.critic_model_name
+        )
         refined_plan = critic.audit_and_refine(
             current_plan=request.current_plan,
             scheme_document_text=request.scheme_document_text,
             grounding_notes=request.grounding_notes
         )
         return refined_plan
+    except LLMAuthError as ae:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(ae))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Critic audit failed: {str(e)}")
 

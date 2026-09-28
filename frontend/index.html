@@ -87,6 +87,34 @@
         </div>
 
         <div class="form-group" style="margin-top: 1.5rem;">
+          <label class="form-label">AI Critic Credentials (Groq)</label>
+          <p style="font-size: 0.78rem; color: var(--text-dim); margin-bottom: 0.75rem;">
+            The Critic Agent always audits on Groq, independent of the provider above.
+            Leave the key blank to use the <code>GROQ_API_KEY</code> environment variable.
+            Press <strong>Verify Key</strong> to load the chat models your account can currently reach.
+          </p>
+          <div class="key-input-wrapper">
+            <input type="password" id="criticApiKeyInput" class="form-control" placeholder="Optional Groq API key (gsk_...)">
+            <button type="button" id="toggleCriticKeyVisibility" class="btn-toggle-key">Show</button>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+            <span id="criticKeyStatusText" style="font-size: 0.78rem; color: var(--text-dim);">Falls back to GROQ_API_KEY env var</span>
+            <button type="button" id="btnTestCriticKey" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+              Verify Key
+            </button>
+          </div>
+          <div style="margin-top: 0.75rem;">
+            <label class="form-label" for="criticModelSelect">Critic Model</label>
+            <select id="criticModelSelect" class="form-select">
+              <option value="openai/gpt-oss-120b" selected>openai/gpt-oss-120b (Recommended)</option>
+              <option value="qwen/qwen3.8-27b">qwen/qwen3.8-27b</option>
+              <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (Faster)</option>
+            </select>
+            <div id="criticModelNote" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.4rem;"></div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.5rem;">
           <label class="form-label">Generation Guardrails</label>
           <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px;">
             <div>&bull; <strong>Strict No Lip-Sync:</strong> Third-person narration with B-roll</div>

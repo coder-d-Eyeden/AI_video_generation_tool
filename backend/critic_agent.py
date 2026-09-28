@@ -1,5 +1,7 @@
 """
 AI Critic & Refinement Agent.
+Runs exclusively on Groq-hosted chat models (openai/gpt-oss-120b by default) so the
+audit is independent of whichever provider generated the scenes.
 Audits generated video scene prompts against strict constraints:
 - Zero lip-sync violation
 - West Bengal educational institutions / libraries grounding
@@ -10,8 +12,14 @@ Audits generated video scene prompts against strict constraints:
 Refines the prompts and outputs an audit log with resolution details.
 """
 from typing import List, Dict, Any, Optional
-from backend.models import VideoProjectPlan, ScenePrompt, CriticAudit, CriticIssue
-from backend.llm_client import LLMClient, LLMExecutionError
+from backend.models import VideoProjectPlan, ScenePrompt, CriticAudit, CriticIssue, ProviderType
+from backend.llm_client import (
+    LLMClient,
+    LLMAuthError,
+    LLMExecutionError,
+    resolve_groq_api_key,
+    resolve_groq_model,
+)
 
 
 CRITIC_AGENT_SYSTEM_PROMPT = """
@@ -95,15 +103,38 @@ JSON SCHEMA TO RETURN:
 
 
 class CriticAgent:
-    def __init__(self, llm_client: LLMClient):
-        self.llm_client = llm_client
+    """
+    Always talks to Groq, never to the scene generator's provider.
+    The Groq key is resolved per-request and falls back to the GROQ_API_KEY env var.
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model_name: Optional[str] = None
+    ):
+        self.api_key = resolve_groq_api_key(api_key)
+        self.model_name = resolve_groq_model(model_name)
+        self._llm_client: Optional[LLMClient] = None
+
+    @property
+    def llm_client(self) -> LLMClient:
+        """Lazily built Groq client so a missing key surfaces as a clear audit error."""
+        if self._llm_client is None:
+            if not self.api_key:
+                raise LLMAuthError(
+                    "Groq API Key is missing! The AI Critic Agent runs on Groq. "
+                    "Paste a Groq API key (starts with 'gsk_') or set the GROQ_API_KEY "
+                    "environment variable."
+                )
+            self._llm_client = LLMClient(provider=ProviderType.GROQ, api_key=self.api_key)
+        return self._llm_client
 
     def audit_and_refine(
         self,
         current_plan: VideoProjectPlan,
         scheme_document_text: str,
-        grounding_notes: Optional[str] = None,
-        model_name: Optional[str] = None
+        grounding_notes: Optional[str] = None
     ) -> VideoProjectPlan:
         """
         Runs the Critic Agent to evaluate and refine the plan iteratively.
@@ -131,7 +162,7 @@ class CriticAgent:
             raw_response = self.llm_client.generate_json(
                 system_prompt=CRITIC_AGENT_SYSTEM_PROMPT,
                 user_prompt=user_prompt,
-                model_name=model_name
+                model_name=self.model_name
             )
 
             try:
