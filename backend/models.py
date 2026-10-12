@@ -71,3 +71,69 @@ class SynthesizeAudioRequest(BaseModel):
     bengali_text: str
     start_pad_sec: float = 1.0
     end_pad_sec: float = 1.5
+
+
+# --------------------------------------------------------------------------
+# Video generation, editing & merging
+# --------------------------------------------------------------------------
+class ReferenceImage(BaseModel):
+    filename: Optional[str] = None
+    mime_type: str = "image/jpeg"
+    base64: str
+
+
+class VideoGenerationOptions(BaseModel):
+    api_key: Optional[str] = Field(default=None, description="Optional override; falls back to OMNI_API_KEY in backend/config.py")
+    model_name: Optional[str] = None
+    aspect_ratio: str = "16:9"
+    resolution: str = "720p"
+    reference_images: List[ReferenceImage] = Field(default_factory=list)
+
+
+class SceneVideoRequest(VideoGenerationOptions):
+    scene: ScenePrompt
+
+
+class PlanVideoRequest(VideoGenerationOptions):
+    plan: VideoProjectPlan
+    scene_numbers: Optional[List[int]] = Field(default=None, description="Subset of scenes to generate; all when omitted")
+
+
+class ClipAIEditRequest(BaseModel):
+    instruction: str = Field(..., min_length=3)
+    mode: str = Field(default="edit", description="edit | extend")
+    extend_seconds: float = 5.0
+    api_key: Optional[str] = None
+    model_name: Optional[str] = None
+    aspect_ratio: str = "16:9"
+    resolution: str = "720p"
+
+
+class ClipTrimRequest(BaseModel):
+    start: float = 0.0
+    end: Optional[float] = None
+
+
+class TimelineSegment(BaseModel):
+    clip_id: str
+    trim_start: float = 0.0
+    trim_end: Optional[float] = None
+    speed: float = Field(default=1.0, ge=0.5, le=2.0)
+    overlay_text: List[str] = Field(default_factory=list)
+    voiceover_text: Optional[str] = None
+    narration_start: float = 1.0
+    audio_mode: str = Field(default="original", description="original | voiceover | mix | mute")
+    original_volume: float = 1.0
+    voiceover_volume: float = 1.0
+
+
+class MergeRequest(BaseModel):
+    segments: List[TimelineSegment]
+    title: Optional[str] = None
+    aspect_ratio: str = "16:9"
+    resolution: str = "720p"
+    transition: str = "fade"
+    transition_duration: float = Field(default=0.5, ge=0.0, le=2.0)
+    background_music_id: Optional[str] = None
+    background_music_volume: float = Field(default=0.15, ge=0.0, le=1.0)
+    fade_in_out: bool = True

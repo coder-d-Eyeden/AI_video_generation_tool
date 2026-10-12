@@ -785,3 +785,83 @@ body {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ==========================================================================
+   Video Production Studio
+   ========================================================================== */
+.studio-section { margin-top: 3rem; }
+.studio-card { margin-bottom: 1.75rem; }
+.studio-card-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.studio-hint { color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1rem; }
+.studio-settings-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem; }
+.studio-settings-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.studio-check { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.9rem; cursor: pointer; margin: 0.25rem 0 1rem; }
+.studio-check input { accent-color: var(--accent-emerald); width: 16px; height: 16px; }
+.studio-empty { color: var(--text-dim); font-size: 0.9rem; text-align: center; padding: 1.25rem; border: 1px dashed var(--border-color); border-radius: var(--radius-md); }
+.studio-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
+.btn-sm { padding: 0.4rem 0.8rem; font-size: 0.82rem; }
+.btn-danger { background: rgba(244, 63, 94, 0.12); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3); }
+.btn-danger:hover { background: rgba(244, 63, 94, 0.22); }
+.hidden { display: none !important; }
+
+.meta-chip.ok { color: var(--accent-emerald); border-color: var(--border-accent); }
+.meta-chip.warn { color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.35); }
+
+/* Scene generation rows */
+.scene-gen-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.scene-gen-row { display: grid; grid-template-columns: 42px 1fr 200px auto; align-items: center; gap: 1rem; padding: 0.85rem 1rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
+.scene-gen-num { width: 36px; height: 36px; border-radius: 50%; background: var(--gradient-brand); display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.scene-gen-title { font-weight: 600; }
+.scene-gen-sub { color: var(--text-dim); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 520px; }
+
+/* Job progress */
+.job-progress { display: flex; flex-direction: column; gap: 0.3rem; }
+.job-progress-bar { height: 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+.job-progress-fill { height: 100%; background: var(--gradient-brand); transition: width 0.4s ease; }
+.job-progress-text { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.job-progress.failed .job-progress-fill { background: var(--accent-rose); }
+.job-progress.failed .job-progress-text { color: var(--accent-rose); white-space: normal; }
+.job-progress.completed .job-progress-text { color: var(--accent-emerald); }
+#mergeProgress { margin-top: 1rem; }
+
+/* Clip library */
+.clip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+.clip-card { background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; }
+.clip-card video { width: 100%; aspect-ratio: 16 / 9; background: #000; display: block; object-fit: contain; }
+.clip-body { padding: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.clip-label { font-weight: 600; font-size: 0.9rem; }
+.clip-meta { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.clip-badge { font-size: 0.7rem; padding: 0.1rem 0.5rem; border-radius: 999px; background: rgba(255, 255, 255, 0.06); color: var(--text-muted); }
+.clip-badge.omni { background: rgba(139, 92, 246, 0.15); color: #c4b5fd; }
+.clip-badge.edit { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
+.clip-actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.clip-tool { margin-top: 0.25rem; padding: 0.6rem; border-radius: var(--radius-sm); background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.5rem; }
+.clip-tool .inline { display: flex; gap: 0.5rem; align-items: center; }
+.clip-tool input, .clip-tool select, .clip-tool textarea { font-size: 0.82rem; padding: 0.4rem 0.55rem; }
+
+/* Timeline */
+.timeline-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.tl-item { display: grid; grid-template-columns: 150px 1fr; gap: 1rem; padding: 0.85rem; background: var(--bg-input); border: 1px solid var(--border-color); border-left: 3px solid var(--accent-emerald); border-radius: var(--radius-md); }
+.tl-thumb { width: 150px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-sm); background: #000; }
+.tl-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.tl-title { font-weight: 600; }
+.tl-fields { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.6rem; }
+.tl-fields .form-group, .tl-text .form-group { margin-bottom: 0; }
+.tl-fields .form-label, .tl-text .form-label { font-size: 0.7rem; }
+.tl-fields input, .tl-fields select, .tl-text textarea { font-size: 0.82rem; padding: 0.4rem 0.55rem; }
+.tl-text { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.6rem; }
+.tl-text textarea { min-height: 60px; resize: vertical; }
+.tl-text .bengali { font-family: var(--font-bengali); }
+
+/* Final output */
+.final-output { display: flex; flex-direction: column; gap: 1.25rem; }
+.final-item { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; padding: 1rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
+.final-item video { width: 100%; border-radius: var(--radius-sm); background: #000; }
+.final-info h3 { font-size: 1.05rem; margin-bottom: 0.5rem; }
+.final-info p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.75rem; }
+
+@media (max-width: 900px) {
+  .studio-settings-row, .studio-settings-grid, .tl-fields, .tl-text, .final-item { grid-template-columns: 1fr; }
+  .scene-gen-row { grid-template-columns: 42px 1fr; }
+  .tl-item { grid-template-columns: 1fr; }
+}

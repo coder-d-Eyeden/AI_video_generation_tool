@@ -47,3 +47,12 @@ class TTSService:
                 "fits_within_10s_scene": (start_pad_sec + estimated_duration) <= 8.5
             }
         }
+
+    @staticmethod
+    def synthesize_to_file(bengali_text: str, out_path: str) -> str:
+        """Writes Bengali narration to an MP3 file (used when mixing voiceover into rendered video)."""
+        clean_text = (bengali_text or "").strip()
+        if not clean_text:
+            raise ValueError("No Bengali narration text provided for synthesis.")
+        gTTS(text=clean_text, lang='bn', slow=False).save(out_path)
+        return out_path

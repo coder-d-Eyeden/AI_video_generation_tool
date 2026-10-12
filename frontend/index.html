@@ -253,8 +253,135 @@
 
     </section>
 
+    <!-- ================= VIDEO PRODUCTION STUDIO ================= -->
+    <section id="videoStudioSection" class="studio-section">
+      <div class="results-header">
+        <div class="results-title">
+          <h2>🎞️ Video Production Studio</h2>
+          <div class="results-meta">
+            <span class="meta-chip" id="omniModelChip">Model: gemini-omni-1.1-flash</span>
+            <span class="meta-chip" id="omniKeyChip">Checking API key...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 1: Generate scene clips -->
+      <div class="card studio-card">
+        <h2 class="card-title"><span class="card-icon">🎬</span> 1. Generate Scene Videos (Gemini Omni 1.1 Flash)</h2>
+        <div class="studio-settings-row">
+          <div class="form-group">
+            <label class="form-label" for="omniKeyInput">Omni API Key <span style="text-transform:none;color:var(--text-dim);font-weight:400;">(optional if set in backend/config.py)</span></label>
+            <div class="key-input-wrapper">
+              <input type="password" id="omniKeyInput" class="form-control" placeholder="Paste Omni / Gemini API key here (overrides config)">
+              <button type="button" id="toggleOmniKey" class="btn-toggle-key">Show</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="genAspect">Aspect Ratio</label>
+            <select id="genAspect" class="form-select"><option value="16:9">16:9 Landscape</option><option value="9:16">9:16 Vertical</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="genResolution">Resolution</label>
+            <select id="genResolution" class="form-select">
+              <option value="360p">360p</option><option value="720p" selected>720p</option><option value="1080p">1080p</option><option value="4k">4K</option>
+            </select>
+          </div>
+        </div>
+        <label class="studio-check"><input type="checkbox" id="useGroundingRefs" checked> Use uploaded grounding photos as visual references</label>
+
+        <div id="sceneGenEmpty" class="studio-empty">Generate a storyboard above to create scene videos, or upload your own clips in step 2.</div>
+        <div id="sceneGenList" class="scene-gen-list"></div>
+        <div class="studio-actions">
+          <button type="button" id="btnGenerateAllVideos" class="btn btn-primary" disabled>🚀 Generate All Scene Videos</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Clip library -->
+      <div class="card studio-card">
+        <div class="studio-card-head">
+          <h2 class="card-title" style="margin-bottom:0;"><span class="card-icon">📼</span> 2. Clip Library &amp; Editing</h2>
+          <div style="display:flex;gap:0.5rem;">
+            <button type="button" id="btnRefreshClips" class="btn btn-secondary btn-sm">🔄 Refresh</button>
+            <button type="button" id="btnUploadClip" class="btn btn-secondary btn-sm">⬆️ Upload Clip</button>
+            <input type="file" id="clipUploadInput" accept="video/*" multiple style="display:none;">
+          </div>
+        </div>
+        <p class="studio-hint">Trim clips, apply AI edits with natural-language instructions (Omni edit / extend), then add them to the timeline.</p>
+        <div id="clipLibrary" class="clip-grid"></div>
+        <div id="clipLibraryEmpty" class="studio-empty">No clips yet.</div>
+      </div>
+
+      <!-- Step 3: Timeline & merge -->
+      <div class="card studio-card">
+        <div class="studio-card-head">
+          <h2 class="card-title" style="margin-bottom:0;"><span class="card-icon">✂️</span> 3. Timeline Editor &amp; Merge</h2>
+          <div style="display:flex;gap:0.5rem;">
+            <button type="button" id="btnAutoTimeline" class="btn btn-secondary btn-sm">⚡ Auto-build from Scenes</button>
+            <button type="button" id="btnClearTimeline" class="btn btn-secondary btn-sm">🗑️ Clear</button>
+          </div>
+        </div>
+        <div id="timelineList" class="timeline-list"></div>
+        <div id="timelineEmpty" class="studio-empty">Timeline is empty. Use “+ Timeline” on a clip or auto-build from scene clips.</div>
+
+        <div class="section-label" style="margin-top:1.5rem;">Render Settings</div>
+        <div class="studio-settings-grid">
+          <div class="form-group">
+            <label class="form-label" for="mergeTitle">Video Title</label>
+            <input type="text" id="mergeTitle" class="form-control" placeholder="Final video title">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="mergeTransition">Transition</label>
+            <select id="mergeTransition" class="form-select"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="mergeTransitionDur">Transition (sec)</label>
+            <input type="number" id="mergeTransitionDur" class="form-control" value="0.5" min="0" max="2" step="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="mergeAspect">Output Aspect</label>
+            <select id="mergeAspect" class="form-select"><option value="16:9">16:9</option><option value="9:16">9:16</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="mergeResolution">Output Resolution</label>
+            <select id="mergeResolution" class="form-select">
+              <option value="360p">360p</option><option value="720p" selected>720p</option><option value="1080p">1080p</option><option value="4k">4K</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="bgMusicSelect">Background Music</label>
+            <div style="display:flex;gap:0.4rem;">
+              <select id="bgMusicSelect" class="form-select"><option value="">None</option></select>
+              <button type="button" id="btnUploadMusic" class="btn btn-secondary btn-sm" title="Upload music">⬆️</button>
+              <input type="file" id="musicUploadInput" accept="audio/*" style="display:none;">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="bgMusicVolume">Music Volume <span id="bgMusicVolumeLabel">15%</span></label>
+            <input type="range" id="bgMusicVolume" min="0" max="100" value="15" style="width:100%;">
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end;">
+            <label class="studio-check"><input type="checkbox" id="mergeFade" checked> Fade in / out</label>
+          </div>
+        </div>
+
+        <div class="studio-actions">
+          <button type="button" id="btnMerge" class="btn btn-primary btn-large" style="margin-top:0.5rem;">🎞️ Merge &amp; Render Final Video</button>
+        </div>
+        <div id="mergeProgress" class="hidden"></div>
+        </div>
+      </div>
+
+      <!-- Step 4: Final output -->
+      <div class="card studio-card" id="finalCard">
+        <h2 class="card-title"><span class="card-icon">🏁</span> 4. Final Videos</h2>
+        <div id="finalOutput" class="final-output"></div>
+        <div id="finalEmpty" class="studio-empty">No final renders yet.</div>
+      </div>
+    </section>
+
   </main>
 
   <script src="/static/app.js"></script>
+  <script src="/static/video_studio.js"></script>
 </body>
 </html>
