@@ -26,6 +26,8 @@ from backend.llm_client import LLMClient, LLMAuthError, LLMExecutionError
 from backend.scene_generator import SceneGenerator
 from backend.critic_agent import CriticAgent
 from backend.tts_service import TTSService
+from backend.video_routes import router as video_router
+from backend import config
 
 app = FastAPI(
     title="Bengal Scheme-to-Video AI Studio",
@@ -41,6 +43,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(video_router)
 
 
 @app.post("/api/validate-key")
@@ -269,6 +273,17 @@ async def synthesize_voice_endpoint(request: SynthesizeAudioRequest):
 frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 if os.path.exists(frontend_dir):
     app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+
+
+@app.get("/media/{media_path:path}")
+async def serve_media(media_path: str):
+    """Serves generated clips, assets and final renders from the configured MEDIA_ROOT."""
+    root = os.path.realpath(config.MEDIA_ROOT)
+    full = os.path.realpath(os.path.join(root, media_path))
+    if not full.startswith(root + os.sep) or not os.path.isfile(full):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found.")
+    return FileResponse(full)
+
 
 @app.get("/")
 async def root():

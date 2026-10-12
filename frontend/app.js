@@ -95,6 +95,15 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeSchemeText = "";
   let uploadedPhotos = [];
 
+  // Shared state for the Video Production Studio (video_studio.js)
+  window.studioBridge = {
+    getPlan: () => currentPlan,
+    getPhotos: () => uploadedPhotos,
+    getLlmKey: () => apiKeyInput.value.trim(),
+    getLlmProvider: () => providerSelect.value,
+    showAlert: (msg, ok) => showAlert(msg, ok),
+  };
+
   // Show Alert
   function showAlert(msg, isSuccess = false) {
     alertBox.className = isSuccess ? 'alert-box success' : 'alert-box';
@@ -364,6 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     resultsSection.style.display = 'block';
     resultsSection.scrollIntoView({ behavior: 'smooth' });
+    window.dispatchEvent(new CustomEvent('plan-updated', { detail: plan }));
   }
 
   // Create Individual Scene Card

@@ -29,7 +29,16 @@ A modular AI-driven prompt engineering and agentic quality inspection platform f
    - Autonomously audits every scene against the 6 core criteria, flags violations, fixes timings, refines Bengali phrasing, and outputs a compliance score (0–100) and resolution log.
 8. **Bengali TTS Audio Preview**:
    - Direct voiceover preview player with timing buffer calculation.
-9. **Zero Template / Placeholder Fallback**:
+9. **AI Video Generation (Gemini Omni 1.1 Flash)**:
+   - Turns every generated scene prompt into a real video clip (text-to-video, or reference-to-video using your grounding photos).
+   - Generate one scene or all scenes as background jobs, with live progress.
+   - AI editing of any clip with a plain-language instruction (Omni `edit`), or continuing a shot (Omni `extend`).
+10. **Video Editing & Merging Studio** (FFmpeg):
+   - Clip library: upload your own clips, trim, delete.
+   - Timeline: reorder, trim, speed (0.5×–2×), Bengali on-screen text, audio mode (`original` / `voiceover` / `mix` / `mute`).
+   - Bengali TTS voiceover placed at each scene's narration start, background music with volume, transitions (fade, dissolve, wipes, slides, ...), fade in/out.
+   - Renders a final H.264/AAC MP4 (16:9 or 9:16, 360p–4K) for download.
+11. **Zero Template / Placeholder Fallback**:
    - System requires a valid API key (Gemini / OpenAI) and genuine scheme document. Generation is blocked with explicit 400 alerts if inputs are missing.
 
 ---
@@ -47,16 +56,25 @@ h:/py_vid/
 │   ├── scene_generator.py    # Directs 5-6 scenes with WB grounding, timing, & Bengali voiceover
 │   ├── critic_agent.py       # Autonomous AI Critic Agent that audits and refines prompts
 │   ├── tts_service.py        # Bengali Text-to-Speech audio preview generator
-│   ├── media_adapter.py      # Abstract interface for future Text-to-Image and Image-to-Video models
+│   ├── media_adapter.py      # Abstract media generation interface
+│   ├── config.py             # ⚙️ OMNI_API_KEY slot, model name, media folders, render defaults
+│   ├── omni_video_adapter.py # Gemini Omni 1.1 Flash: text/reference-to-video, edit, extend
+│   ├── video_editor.py       # FFmpeg engine: trim, speed, overlays, VO mixing, transitions, merge
+│   ├── media_store.py        # File-backed clip / asset / final-render library (output/)
+│   ├── job_manager.py        # Background jobs for long-running generation & rendering
+│   ├── video_routes.py       # /api/video, /api/clips, /api/jobs, /api/assets, /api/finals
+│   ├── fonts/                # Noto Sans Bengali + Noto Sans (OFL) for burned-in captions
 │   └── main.py               # FastAPI application with REST endpoints
 │
 ├── frontend/
 │   ├── index.html            # Ultra-modern glassmorphic interface with Bengali font support
 │   ├── styles.css            # Dark mode, responsive design system & badges
-│   └── app.js                # State management, live prompt editing, audio playback & exports
+│   ├── app.js                # State management, live prompt editing, audio playback & exports
+│   └── video_studio.js       # Video Production Studio: generation, clip editing, timeline, merge
 │
 ├── tests/
-│   └── test_pipeline.py      # Automated unit tests for all modules and guardrails
+│   ├── test_pipeline.py      # Automated unit tests for all modules and guardrails
+│   └── test_video_studio.py  # Omni adapter (mocked), FFmpeg editing/merge and studio API tests
 │
 ├── requirements.txt
 ├── run.py                    # Server launcher
@@ -72,21 +90,58 @@ h:/py_vid/
 pip install -r requirements.txt
 ```
 
-### 2. Start the Server
+FFmpeg is required for editing/merging. A system `ffmpeg` on `PATH` is used if present; otherwise the bundled binary from `imageio-ffmpeg` is used.
+
+### 2. Add your Omni API key
+Paste your key into `backend/config.py`:
+```python
+OMNI_API_KEY = ""   # <-- paste your Gemini Omni 1.1 Flash API key here
+```
+Alternatives: set the `OMNI_API_KEY` (or `GEMINI_API_KEY`) environment variable, or paste it into the **Omni API Key** field in the Video Production Studio (sent per request, overrides config). Never commit a real key.
+
+Optional env vars: `OMNI_MODEL_NAME` (default `gemini-omni-1.1-flash`), `MEDIA_ROOT` (default `output/`), `OVERLAY_FONT_PATH`.
+
+### 3. Start the Server
 ```bash
 python run.py
 ```
 Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
-### 3. Run Automated Tests
+### 4. Make a video
+1. Generate a storyboard from a scheme document (as before).
+2. **Video Production Studio → 1.** Click **Generate All Scene Videos** (or per-scene **Generate**).
+3. **2. Clip Library** — preview, trim, or use **AI Edit** to change a clip with an instruction.
+4. **3. Timeline** — **Auto-build from Scenes**, adjust trims / audio / on-screen text, pick a transition and background music.
+5. Click **Merge & Render Final Video**, then download the MP4 from **4. Final Videos**.
+
+### 5. Run Automated Tests
 ```bash
 python -m pytest tests/
 ```
 
 ---
 
+## 🎞️ Video API
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/video/config` | Model name, key status, transitions, audio modes |
+| POST | `/api/video/generate-scene` | Generate one scene clip (background job) |
+| POST | `/api/video/generate-all` | Generate all / selected scenes of a plan (background job) |
+| GET | `/api/jobs/{id}` | Poll job progress / result |
+| GET, POST, DELETE | `/api/clips`, `/api/clips/upload`, `/api/clips/{id}` | Clip library |
+| POST | `/api/clips/{id}/trim` | Create a trimmed copy |
+| POST | `/api/clips/{id}/ai-edit` | Omni edit / extend with an instruction (background job) |
+| GET, POST | `/api/assets`, `/api/assets/upload` | Background music |
+| POST | `/api/video/merge` | Render a timeline into a final MP4 (background job) |
+| GET | `/api/finals` | List final renders |
+
+Generated files live in `output/` (`clips/`, `assets/`, `final/`) and are served from `/media/...`.
+
+---
+
 ## 🔌 Independent Team Extension (Media Adapter)
-Team members working on image/video generation can implement `BaseMediaAdapter` in `backend/media_adapter.py`:
+`backend/omni_video_adapter.py` is the reference implementation of `BaseMediaAdapter`. Other models can be plugged in the same way:
 ```python
 from backend.media_adapter import BaseMediaAdapter, MediaGenerationResult
 
